@@ -23,6 +23,7 @@ contract HelloWorld{
     }
 }
 ```
+
 After compiling the contract, you can get a description of the contract interface abi as follows:
 
 ```json
@@ -37,7 +38,6 @@ After compiling the contract, you can get a description of the contract interfac
     ],
     "name": "set",
     "outputs": [
-      
     ],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -46,7 +46,6 @@ After compiling the contract, you can get a description of the contract interfac
   {
     "constant": true,
     "inputs": [
-      
     ],
     "name": "get",
     "outputs": [
@@ -61,7 +60,6 @@ After compiling the contract, you can get a description of the contract interfac
   },
   {
     "inputs": [
-      
     ],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -69,31 +67,42 @@ After compiling the contract, you can get a description of the contract interfac
   }
 ]
 ```
+
 Then deploy the contract to the blockchain and get an address, for example: 0x269ab4bc23b07efeb3c3fd52eecfc4cbe6a50859.
 Finally, using address combined with abi, you can call the contract. The various SDK tools are used differently, but essentially encapsulate the use of address and abi. 
 
 ### 2. CNS Brief introduction
-As can be seen from the contract call flow, contract abi and address are necessary. So it has the following problems: 
-1. 合约ABI描述是个很长的JSON字符串, 是调用端需要, 对使用者来说并不友好. 
-2. 合约地址是个魔数, 不方便记忆, 要谨慎维护, 丢失后会导致合约不可访问. 
-3. 在合约每次重新部署时, 调用方都需要更新合约地址. 
-4. 不便于进行版本管理以及合约灰度升级. 
 
-CNS合约命名服务,提供一种由命名到合约接口调用的映射关系.   
-CNS中,调用合约接口时,传入合约映射的name,接口名称以及参数信息. 在底层框架的CNS Manager模块维护name与合约信息的映射关系,将根据调用传入的name 、接口、参数, 转换底层EVM需要的字节码供EVM调用.   
+As can be seen from the contract call flow, contract abi and address are necessary. So it has the following problems:
 
-下面给出一个图示来说明下CNS服务的优势:  
-![](./images/pic1.jpg)  
-1. 不在需要维护并不友好的合约ABI和合约地址address. 
-2. 调用方式更简单友好,只需要合约映射的CNS名称,调用接口名称,参数信息. 
-3. 内置的版本管理特性, 为合约提供了灰度升级的可能性. 
+1. The contract ABI description is a long JSON string and that is not user-friendly for the caller.
+2. Contract address is a magic number which is not easy to remember, and it requires careful maintenance. The contracts will be inaccessible if you lose it.
+3. The caller needs to update the contract address every time when the contract is redeployed.
+4. Not convenient for version management and contract gated-upgrade.
 
-## 二.实现
-### 1. 总体框架
-![](./images/pic2.jpg)  
-在整个框架中, 命名服务模块提供命名服务, 客户端请求RPC调用合约服务的交易, 交易框架会首先访问合约命名服务模块, 从而解析出要访问的真实合约信息, 构造合约调用需要的信息, 进而对业务合约发出调用, 并访问结果给客户端. 
-### 2. 主要模块  
-#### a. 管理合约模块  
+The CNS provides a mapping relationship between naming and contract interface call.
+In CNS, when the contract interface is called, the name, interface and parameter information of the contract map is passed in. The CNS Manager module of the underlying framework maintains the mapping relationship between the name and contract information and it will called by EVM when converting the underlying bytecode according to the name, interface and parameter information.
+
+So CNS has the following advantages:
+
+![](./images/en_cns_1.png)
+
+1. No need to maintain unfriendly contract ABI and contract address.
+2. The calling method is more simple and friendly. It only needs the CNS name, interface and parameter information of the contract mapping.
+3. Built-in version management and gated-upgrade features.
+
+## How it works
+
+### 1. Overall framework
+
+![](./images/en_cns_2.png)
+
+In the framework, the naming service module provides a naming service. The client requests the RPC to call the contract service transaction. The transaction framework first accesses the contract naming service module, thereby parsing the real contract information to be accessed, then constructing the information required for the contract call, and final make a call to the business contract and return the results to the client.
+
+### 2. Main Module
+
+#### a. Contract Management Module
+
 在管理合约中保存命名服务中name与合约信息的映射关系,合约具体信息包含合约地址、abi、版本号等,并且提供接口供外部辅助工具cns_manager.js实现添加、更新、覆盖、重置功能. 同时,底层交易框架内存中会有一份该合约内容的备份,在该合约内容发生变动时,内存同步更新.   
 - 当前CNS中实现的映射关系为 : 合约名+合约版本号 => 合约详情(abi 合约地址等)
 - 合约实现: systemcontractv2/ContractAbiMgr.sol  
